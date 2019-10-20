@@ -27,6 +27,9 @@ from tensorflow import flags
 from tensorflow.python.lib.io import file_io
 import utils
 import video_level_models
+import numpy as np
+
+from tensorflow import gfile
 
 FLAGS = flags.FLAGS
 
@@ -56,7 +59,12 @@ if __name__ == "__main__":
                        "How many threads to use for reading input files.")
   flags.DEFINE_boolean("run_once", False, "Whether to run eval only once.")
   flags.DEFINE_integer("top_k", 20, "How many predictions to output per video.")
-
+  
+  
+  flags.DEFINE_integer("file_size", 4096,
+                       "Number of frames per batch for DBoF.")
+  flags.DEFINE_string("output_dir", "",
+                       "The file to save the predictions to.")
 def find_class_by_name(name, modules):
   """Searches the provided modules for the named class and returns it."""
   modules = [getattr(module, name, None) for module in modules]
@@ -160,7 +168,7 @@ def build_graph(reader,
   """
 
   global_step = tf.Variable(0, trainable=False, name="global_step")
-  input_data_dict =(get_input_data_tensors(
+  input_data_dict =(get_input_evaluation_tensors(
           reader,
           input_data_pattern,
           batch_size=batch_size))
@@ -284,7 +292,11 @@ def inference(saver, model_checkpoint_path, out_file_location, batch_size, top_k
       raise Exception("unable to find a checkpoint at location: %s" % model_checkpoint_path)
 
     logging.info("restoring variables from " + model_checkpoint_path)
-    saver.restore(sess, model_checkpoint_path)
+    
+    ckpt = tf.train.get_checkpoint_state(model_checkpoint_path)
+    if ckpt and ckpt.model_checkpoint_path:
+        saver.restore(sess, ckpt.model_checkpoint_path)
+    #saver.restore(sess, model_checkpoint_path)
 
     input_tensor = tf.get_collection("input_batch_raw")[0]
     num_frames_tensor = tf.get_collection("num_frames")[0]
@@ -319,8 +331,8 @@ def inference(saver, model_checkpoint_path, out_file_location, batch_size, top_k
     directory = FLAGS.output_dir
     if not os.path.exists(directory):
         os.makedirs(directory)
-    else:
-        raise IOError("Output path exists! path='" + directory + "'")
+    #else:
+    #    raise IOError("Output path exists! path='" + directory + "'")
 
     try:
       while not coord.should_stop():
