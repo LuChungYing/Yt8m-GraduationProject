@@ -1,8 +1,8 @@
 model=$1
-python eval.py --frame_features \
-	--model=${model} \
-	--feature_names="rgb,audio" \
-	--feature_sizes="1024,128" \
-	--train_data_pattern=/home/g0931848058johnny/yt8m/3/frame/validate/validate*.tfrecord \
-	--train_dir="/home/g0931848058johnny/yt8m/models/frame/${model}" \
-	--batch_size=32
+echo $model
+python eval.py \
+    --train_dir="/home/lulu/yt8m/models/frame/${model}" \
+    --eval_data_pattern='/home/lulu/yt8m/3/frame/validate/validate*.tfrecord' \
+    --frame_features \
+    --batch_size=32 \
+    --segment_lables
